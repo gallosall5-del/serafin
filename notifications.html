@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notifications — Terafin</title>
+    <link rel="stylesheet" href="styles/main.css" />
+    <link rel="stylesheet" href="styles/sidebar.css" />
+    <style>
+        .notif-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background var(--transition-fast);
+            position: relative;
+        }
+
+        .notif-item:last-child {
+            border-bottom: none;
+        }
+
+        .notif-item:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .notif-item.unread {
+            background: rgba(99, 102, 241, .04);
+        }
+
+        .notif-item.unread::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--brand-primary);
+        }
+
+        .notif-icon-wrap {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .notif-title {
+            font-weight: 600;
+            font-size: .9rem;
+        }
+
+        .notif-sub {
+            font-size: .8rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .notif-meta {
+            font-size: .75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .notif-type-badge {
+            font-size: .7rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 99px;
+            background: var(--bg-input);
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+
+<body class="app-layout">
+    <div id="sidebar-container"></div>
+    <button class="theme-toggle" id="theme-toggle"></button>
+
+    <main class="main-content" id="main-content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Notifications</h1>
+                <p class="page-subtitle">Historique des emails et alertes</p>
+            </div>
+            <button class="btn btn-secondary" id="mark-all-read">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Tout marquer lu
+            </button>
+        </div>
+
+        <!-- Summary cards -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px;">
+            <div class="kpi-card indigo">
+                <div class="kpi-icon indigo">📧</div>
+                <div class="kpi-value" id="total-notifs">—</div>
+                <div class="kpi-label">Total envoyés</div>
+            </div>
+            <div class="kpi-card purple">
+                <div class="kpi-icon purple">📬</div>
+                <div class="kpi-value" id="unread-notifs">—</div>
+                <div class="kpi-label">Non lus</div>
+            </div>
+            <div class="kpi-card rose">
+                <div class="kpi-icon rose">❌</div>
+                <div class="kpi-value" id="failed-notifs">—</div>
+                <div class="kpi-label">Échecs d'envoi</div>
+            </div>
+        </div>
+
+        <!-- Filter + list -->
+        <div class="table-container">
+            <div class="table-toolbar">
+                <span class="table-title">Emails envoyés</span>
+                <div class="flex gap-2">
+                    <select id="filter-type" class="form-control" style="width:auto;padding:7px 12px;font-size:.8rem;">
+                        <option value="">Tous les types</option>
+                        <option value="rappel">Rappel</option>
+                        <option value="retard">Retard</option>
+                        <option value="paiement">Paiement</option>
+                        <option value="bienvenue">Bienvenue</option>
+                    </select>
+                    <select id="filter-status" class="form-control"
+                        style="width:auto;padding:7px 12px;font-size:.8rem;">
+                        <option value="">Tous les statuts</option>
+                        <option value="envoyé">Envoyés</option>
+                        <option value="échoué">Échoués</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="notif-list">
+                <div style="text-align:center;padding:40px" class="text-muted">
+                    <div class="spinner" style="margin:0 auto 12px"></div>Chargement...
+                </div>
+            </div>
+            <div class="pagination" id="notif-pagination"></div>
+        </div>
+    </main>
+
+    <!-- Modal: Notification detail -->
+    <div class="modal-overlay" id="modal-notif-detail">
+        <div class="modal" style="max-width:600px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="notif-detail-sujet">Détail</h2>
+                <button class="modal-close" data-modal-close="modal-notif-detail">✕</button>
+            </div>
+            <div id="notif-detail-content" class="p-6"></div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/shared.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script>
+        if (!AUTH.requireAuth()) { }
+        THEME.init();
+        renderSidebar('notifications.html');
+        initShared();
+
+        let allNotifs = [];
+        let currentPage = 1;
+        const PAGE_SIZE = 15;
+
+        const typeConfig = {
+            'rappel': { color: 'rgba(99,102,241,.15)', text: '#6366f1', emoji: '🔔' },
+            'retard': { color: 'rgba(239,68,68,.15)', text: '#ef4444', emoji: '⚠️' },
+            'paiement': { color: 'rgba(16,185,129,.15)', text: '#10b981', emoji: '💳' },
+            'bienvenue': { color: 'rgba(6,182,212,.15)', text: '#06b6d4', emoji: '🎉' },
+            'default': { color: 'rgba(139,92,246,.15)', text: '#8b5cf6', emoji: '📧' },
+        };
+
+        async function loadData() {
+            try {
+                const [notifs, stats] = await Promise.all([
+                    API.notifications.list(0, 500),
+                    API.notifications.stats()
+                ]);
+
+                allNotifs = Array.isArray(notifs) ? notifs : (notifs?.items || []);
+
+                document.getElementById('total-notifs').textContent = stats.total || 0;
+                document.getElementById('unread-notifs').textContent = stats.non_lus || 0;
+                document.getElementById('failed-notifs').textContent = stats.echoues || 0;
+
+                renderList();
+            } catch (err) {
+                document.getElementById('notif-list').innerHTML = `<p style="color:#ef4444;text-align:center;padding:32px">${err.message}</p>`;
+            }
+        }
+
+        function renderList() {
+            const typeF = document.getElementById('filter-type').value;
+            const statusF = document.getElementById('filter-status').value;
+
+            let filtered = allNotifs;
+            if (typeF) filtered = filtered.filter(n => n.type === typeF);
+            if (statusF) filtered = filtered.filter(n => n.statut === statusF);
+
+            const total = filtered.length;
+            const pages = Math.ceil(total / PAGE_SIZE);
+            if (currentPage > pages) currentPage = 1;
+            const slice = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+            const container = document.getElementById('notif-list');
+            if (slice.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center" style="padding:32px">Aucune notification</p>';
+            } else {
+                container.innerHTML = slice.map(n => {
+                    const cfg = typeConfig[n.type] || typeConfig['default'];
+                    const isRead = n.lu; // Corrected field
+                    return `
+                        <div class="notif-item ${!isRead ? 'unread' : ''}" onclick="viewNotif(${n.id})">
+                            <div class="notif-icon-wrap" style="background:${cfg.color}">
+                                <span style="font-size:1.1rem">${cfg.emoji}</span>
+                            </div>
+                            <div style="flex:1;min-width:0;">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="notif-type-badge">${n.type || '—'}</span>
+                                    <span class="notif-type-badge" style="${n.statut === 'échoué' ? 'background:rgba(239,68,68,.1);color:#ef4444' : 'background:rgba(16,185,129,.1);color:#10b981'}">
+                                        ${n.statut === 'échoué' ? '❌ Échoué' : '✅ Envoyé'}
+                                    </span>
+                                    ${!isRead ? '<span class="notif-type-badge" style="background:rgba(99,102,241,.1);color:#6366f1">Non lu</span>' : ''}
+                                </div>
+                                <div class="notif-title truncate">${n.sujet || '(Sans sujet)'}</div>
+                                <div class="notif-sub">À : ${n.destinataire_email || '—'}</div>
+                                <div class="notif-meta">${formatDateTime(n.created_at)}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const pag = document.getElementById('notif-pagination');
+            if (pages <= 1) { pag.innerHTML = ''; return; }
+            let html = `<button class="pagination-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
+            for (let i = 1; i <= pages; i++) html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+            html += `<button class="pagination-btn" onclick="changePage(${currentPage + 1})" ${currentPage === pages ? 'disabled' : ''}>›</button>`;
+            pag.innerHTML = html;
+        }
+
+        function changePage(p) { currentPage = p; renderList(); }
+
+        async function viewNotif(id) {
+            const notif = allNotifs.find(n => n.id === id);
+            if (!notif) return;
+            document.getElementById('notif-detail-sujet').textContent = notif.sujet || 'Détail notification';
+            document.getElementById('notif-detail-content').innerHTML = `
+                <div class="flex gap-3 mb-4" style="flex-wrap:wrap;">
+                    <span class="badge ${notif.statut === 'échoué' ? 'badge-late' : 'badge-active'}">${notif.statut}</span>
+                    <span class="text-muted text-sm">Type : <strong>${notif.type}</strong></span>
+                    <span class="text-muted text-sm">À : <strong>${notif.destinataire_email}</strong></span>
+                    <span class="text-muted text-sm">${formatDateTime(notif.created_at)}</span>
+                </div>
+                <div style="background:var(--bg-input);border-radius:12px;padding:20px;font-size:0.9rem;line-height:1.6;max-height:350px;overflow-y:auto;white-space:pre-wrap;">
+                    ${notif.contenu || '<em class="text-muted">Contenu vide</em>'}
+                </div>
+            `;
+            MODAL.open('modal-notif-detail');
+
+            // Mark as read if needed
+            if (!notif.lu) {
+                try {
+                    await API.notifications.markRead(id);
+                    notif.lu = true;
+                    currentPage = 1; // refresh stats
+                    loadData();
+                } catch (err) { console.error('Error marking read:', err); }
+            }
+        }
+
+        document.getElementById('mark-all-read').addEventListener('click', async () => {
+            try {
+                await API.notifications.markAllRead();
+                allNotifs.forEach(n => n.lu = true);
+                TOAST.success('Tout lu !', 'Toutes les notifications ont été marquées comme lues.');
+                loadData();
+            } catch (err) {
+                TOAST.error('Erreur', err.message);
+            }
+        });
+
+        document.getElementById('filter-type').addEventListener('change', () => { currentPage = 1; renderList(); });
+        document.getElementById('filter-status').addEventListener('change', () => { currentPage = 1; renderList(); });
+
+        loadData();
+    </script>
+</body>
+
+</html>

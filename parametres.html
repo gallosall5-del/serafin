@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Paramètres — Terafin</title>
+    <link rel="stylesheet" href="styles/main.css" />
+    <link rel="stylesheet" href="styles/sidebar.css" />
+    <style>
+        .settings-section {
+            margin-bottom: 32px;
+        }
+
+        .settings-section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .input-with-suffix {
+            position: relative;
+        }
+
+        .input-suffix {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: .85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
+        .input-with-suffix .form-control {
+            padding-right: 48px;
+        }
+
+        @media (max-width: 768px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body class="app-layout">
+    <div id="sidebar-container"></div>
+    <button class="theme-toggle" id="theme-toggle"></button>
+
+    <main class="main-content" id="main-content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Paramètres Système</h1>
+                <p class="page-subtitle">Configuration des taux, pénalités et accès SMTP (Admin uniquement)</p>
+            </div>
+            <button class="btn btn-primary" id="save-settings">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                    <polyline points="17 21 17 13 7 13 7 21" />
+                    <polyline points="7 3 7 8 15 8" />
+                </svg>
+                Sauvegarder les modifications
+            </button>
+        </div>
+
+        <div id="settings-loading" style="text-align:center;padding:60px" class="text-muted">
+            <div class="spinner" style="margin:0 auto 12px"></div>Chargement des paramètres...
+        </div>
+
+        <div id="settings-content" class="hidden">
+
+            <!-- Global Settings -->
+            <div class="settings-section">
+                <div class="settings-section-title">📊 Paramètres de calcul</div>
+                <div class="settings-grid">
+                    <div class="card p-5">
+                        <div class="form-group">
+                            <label class="form-label" for="penalite-taux">Taux pénalité journalière (%) *</label>
+                            <div class="input-with-suffix">
+                                <input type="number" id="penalite-taux" class="form-control" step="0.01" min="0" />
+                                <span class="input-suffix">%/j</span>
+                            </div>
+                            <p class="text-xs text-muted mt-2">Cumulatif par jour de retard sur le capital restant.</p>
+                        </div>
+                    </div>
+                    <div class="card p-5">
+                        <div class="form-group">
+                            <label class="form-label" for="type-interet-defaut">Type d'intérêt par défaut</label>
+                            <select id="type-interet-defaut" class="form-control">
+                                <option value="simple">Intérêt Simple</option>
+                                <option value="compose">Intérêt Composé</option>
+                            </select>
+                            <p class="text-xs text-muted mt-2">Appliqué lors de la création d'un nouveau dossier.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email / SMTP -->
+            <div class="settings-section">
+                <div class="settings-section-title">📧 Configuration Email (SMTP / SendGrid)</div>
+                <div class="card p-6">
+                    <div class="settings-grid mb-6">
+                        <div class="form-group">
+                            <label class="form-label" for="email-provider">Fournisseur d'email</label>
+                            <select id="email-provider" class="form-control">
+                                <option value="smtp">Serveur SMTP</option>
+                                <option value="sendgrid">SendGrid API</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="emails-from">Email expéditeur (FROM)</label>
+                            <input type="email" id="emails-from" class="form-control"
+                                placeholder="noreply@terafin.sn" />
+                        </div>
+                    </div>
+
+                    <div id="smtp-section" class="settings-grid pt-4 border-t"
+                        style="border-top:1px solid var(--border-color);">
+                        <div class="form-group">
+                            <label class="form-label" for="smtp-server">Serveur SMTP</label>
+                            <input type="text" id="smtp-server" class="form-control" placeholder="smtp.gmail.com" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="smtp-port">Port SMTP</label>
+                            <input type="number" id="smtp-port" class="form-control" placeholder="587" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="smtp-user">Utilisateur SMTP</label>
+                            <input type="text" id="smtp-user" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="smtp-password">Mot de passe SMTP</label>
+                            <input type="password" id="smtp-password" class="form-control" placeholder="••••••••" />
+                        </div>
+                    </div>
+
+                    <div id="sendgrid-section" class="hidden pt-4 border-t"
+                        style="border-top:1px solid var(--border-color);">
+                        <div class="form-group">
+                            <label class="form-label" for="sendgrid-key">Clé API SendGrid</label>
+                            <input type="password" id="sendgrid-key" class="form-control" placeholder="SG.xxxxxxxx" />
+                            <div id="sg-status" class="text-xs mt-2 font-medium"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security / Tokens -->
+            <div class="settings-section">
+                <div class="settings-section-title">🔒 Identifiants et Jetons</div>
+                <div class="settings-grid">
+                    <div class="card p-5">
+                        <div class="form-group">
+                            <label class="form-label">Expiration Master Token</label>
+                            <div class="font-bold text-indigo" id="token-expire">? min</div>
+                            <p class="text-xs text-muted mt-1">Défini en dur dans le backend (non modifiable ici).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/shared.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script>
+        if (!AUTH.requireRole(['admin'])) { }
+        THEME.init();
+        renderSidebar('parametres.html');
+        initShared();
+
+        async function loadSettings() {
+            try {
+                const params = await API.parametres.get();
+
+                // Calculations
+                document.getElementById('penalite-taux').value = params.penalite_taux_journalier;
+                document.getElementById('type-interet-defaut').value = params.type_interet_defaut;
+
+                // Email
+                document.getElementById('email-provider').value = params.email_provider;
+                document.getElementById('emails-from').value = params.emails_from;
+                document.getElementById('smtp-server').value = params.smtp_server;
+                document.getElementById('smtp-port').value = params.smtp_port;
+                document.getElementById('smtp-user').value = params.smtp_user;
+
+                // Token
+                document.getElementById('token-expire').textContent = params.access_token_expire_minutes + ' minutes';
+
+                // Display/Hide sections
+                toggleProviderSections(params.email_provider);
+                if (params.sendgrid_configured) {
+                    document.getElementById('sg-status').textContent = '✅ Clé configurée sur le serveur';
+                    document.getElementById('sg-status').classList.add('text-green');
+                } else {
+                    document.getElementById('sg-status').textContent = '❌ Clé non configurée';
+                    document.getElementById('sg-status').classList.add('text-rose');
+                }
+
+                document.getElementById('settings-loading').style.display = 'none';
+                document.getElementById('settings-content').classList.remove('hidden');
+
+            } catch (err) {
+                TOAST.error('Erreur', 'Impossible de charger les paramètres.');
+            }
+        }
+
+        function toggleProviderSections(provider) {
+            if (provider === 'sendgrid') {
+                document.getElementById('sendgrid-section').classList.remove('hidden');
+                document.getElementById('smtp-section').classList.add('hidden');
+            } else {
+                document.getElementById('sendgrid-section').classList.add('hidden');
+                document.getElementById('smtp-section').classList.remove('hidden');
+            }
+        }
+
+        document.getElementById('email-provider').addEventListener('change', (e) => {
+            toggleProviderSections(e.target.value);
+        });
+
+        document.getElementById('save-settings').addEventListener('click', async () => {
+            const btn = document.getElementById('save-settings');
+            btn.disabled = true;
+            btn.textContent = 'Mise à jour...';
+
+            try {
+                const payload = {
+                    penalite_taux_journalier: parseFloat(document.getElementById('penalite-taux').value),
+                    type_interet_defaut: document.getElementById('type-interet-defaut').value,
+                    email_provider: document.getElementById('email-provider').value,
+                    emails_from: document.getElementById('emails-from').value,
+                    smtp_server: document.getElementById('smtp-server').value,
+                    smtp_port: parseInt(document.getElementById('smtp-port').value),
+                    smtp_user: document.getElementById('smtp-user').value,
+                };
+
+                const pwd = document.getElementById('smtp-password').value;
+                if (pwd) payload.smtp_password = pwd;
+
+                const sg = document.getElementById('sendgrid-key').value;
+                if (sg) payload.sendgrid_api_key = sg;
+
+                const res = await API.parametres.update(payload);
+                TOAST.success('Configuration mise à jour', res.message);
+
+                if (pwd || sg) {
+                    document.getElementById('smtp-password').value = '';
+                    document.getElementById('sendgrid-key').value = '';
+                }
+                loadSettings();
+
+            } catch (err) {
+                TOAST.error('Erreur', err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Sauvegarder les modifications';
+            }
+        });
+
+        loadSettings();
+    </script>
+</body>
+
+</html>

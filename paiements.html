@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Paiements — Terafin</title>
+    <link rel="stylesheet" href="styles/main.css" />
+    <link rel="stylesheet" href="styles/sidebar.css" />
+    <style>
+        .progress-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .progress-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15);
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .btn-solder {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .btn-solder:hover {
+            background: #10b981;
+            color: white;
+        }
+    </style>
+</head>
+
+<body class="app-layout">
+    <div id="sidebar-container"></div>
+    <button class="theme-toggle" id="theme-toggle"></button>
+
+    <main class="main-content" id="main-content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Suivi des Remboursements</h1>
+                <p class="page-subtitle">Visualisez la progression et enregistrez les paiements</p>
+            </div>
+            <button class="btn btn-primary" data-modal-open="modal-add-paiement">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Enregistrer un paiement
+            </button>
+        </div>
+
+        <!-- Progress Grid -->
+        <div class="mb-8">
+            <div id="progress-cards" class="hidden"
+                style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;">
+                <!-- filled by JS -->
+            </div>
+            <div id="progress-loading" style="text-align:center;padding:64px" class="text-muted">
+                <div class="spinner" style="margin:0 auto 16px"></div>Chargement du suivi...
+            </div>
+        </div>
+
+        <!-- Table Summary -->
+        <div class="table-container">
+            <div class="table-toolbar">
+                <span class="table-title">Tous les Crédits</span>
+                <div class="search-box">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input type="text" id="search-remboursements" placeholder="Rechercher un client..." />
+                </div>
+            </div>
+            <div style="overflow-x:auto;">
+                <table id="remboursements-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Client</th>
+                            <th>Montant</th>
+                            <th>Restant</th>
+                            <th>Progression</th>
+                            <th>Retard</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody id="remboursements-tbody">
+                        <tr>
+                            <td colspan="7" class="text-center text-muted" style="padding:40px">
+                                <div class="spinner" style="margin:0 auto 12px"></div>Chargement...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: Add Paiement -->
+    <div class="modal-overlay" id="modal-add-paiement">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Enregistrer un Remboursement</h2>
+                <button class="modal-close" data-modal-close="modal-add-paiement">✕</button>
+            </div>
+            <form id="form-add-paiement">
+                <div class="form-group">
+                    <label class="form-label" for="p-credit">Crédit *</label>
+                    <select id="p-credit" class="form-control" required>
+                        <option value="">-- Sélectionner un crédit actif --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="p-montant">Montant payé (CFA) *</label>
+                    <input type="number" id="p-montant" class="form-control" placeholder="Ex: 125000" min="0"
+                        required />
+                </div>
+                <div id="paiement-form-error" class="hidden" style="
+                    background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:10px;
+                    padding:10px 14px;font-size:.875rem;color:#ef4444;margin-bottom:16px;
+                "></div>
+                <div class="flex gap-3" style="justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary"
+                        data-modal-close="modal-add-paiement">Annuler</button>
+                    <button type="submit" class="btn btn-primary" id="submit-paiement">Confirmer le paiement</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Confirm Solder -->
+    <div class="modal-overlay" id="modal-confirm-solder">
+        <div class="modal" style="max-width:400px">
+            <div class="modal-header">
+                <h2 class="modal-title">Solder le crédit ?</h2>
+                <button class="modal-close" data-modal-close="modal-confirm-solder">✕</button>
+            </div>
+            <div class="p-4">
+                <p class="text-sm mb-4">Êtes-vous sûr de vouloir solder ce crédit par anticipation ? Le montant final
+                    sera recalculé par le système.</p>
+                <div id="solder-info" class="hidden"
+                    style="background:var(--bg-secondary);padding:12px;border-radius:8px;margin-bottom:16px;font-size:.85rem;">
+                </div>
+            </div>
+            <div class="flex gap-3 p-4" style="justify-content:flex-end;border-top:1px solid var(--border-color);">
+                <button class="btn btn-secondary" data-modal-close="modal-confirm-solder">Fermer</button>
+                <button class="btn btn-primary" id="confirm-solder-btn" style="background:#10b981">Confirmer le
+                    solde</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/shared.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script>
+        if (!AUTH.requireAuth()) { }
+        THEME.init();
+        renderSidebar('paiements.html');
+        initShared();
+
+        let allRemboursements = [];
+        let selectedCreditId = null;
+
+        async function loadData() {
+            try {
+                const data = await API.remboursements.list();
+                allRemboursements = data || [];
+
+                renderProgressCards();
+                renderTable();
+
+                // Populate credit dropdown
+                const sel = document.getElementById('p-credit');
+                const activeOnes = allRemboursements.filter(r => r.statut === 'pending' || r.statut === 'active' || r.statut === 'overdue');
+                sel.innerHTML = '<option value="">-- Sélectionner un crédit --</option>' +
+                    activeOnes.map(r => `<option value="${r.credit_id}">${r.client_nom} (Crédit #${r.credit_id} — ${formatCurrency(r.montant_initial)})</option>`).join('');
+
+            } catch (err) {
+                TOAST.error('Erreur', err.message);
+                document.getElementById('progress-loading').textContent = "Erreur lors du chargement des données.";
+            }
+        }
+
+        function renderProgressCards() {
+            const container = document.getElementById('progress-cards');
+            const loading = document.getElementById('progress-loading');
+            loading.style.display = 'none';
+
+            const suspects = allRemboursements.filter(r => r.statut === 'active' || r.statut === 'overdue');
+
+            if (suspects.length === 0) {
+                container.innerHTML = '<p class="text-muted" style="grid-column:1/-1;text-align:center;padding:32px">Aucun crédit actif nécessitant un suivi immédiat.</p>';
+                container.style.display = 'grid';
+                container.classList.remove('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+            container.style.display = 'grid';
+
+            container.innerHTML = suspects.map(r => {
+                const percent = r.pourcentage_rembourse || 0;
+                const isOverdue = r.statut === 'overdue';
+
+                return `
+                    <div class="card progress-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <span class="block font-bold">${r.client_nom}</span>
+                                <span class="text-xs text-muted">ID #${r.credit_id}</span>
+                            </div>
+                            ${creditStatusBadge(r.statut)}
+                        </div>
+                        <div style="margin-bottom:12px">
+                            <div class="flex items-center justify-between text-sm mb-2">
+                                <span class="text-muted">Progression</span>
+                                <span class="font-semibold">${percent}%</span>
+                            </div>
+                            <div class="progress-bar-track">
+                                <div class="progress-bar-fill" style="width:0%" data-target="${percent}"></div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 text-xs mb-4">
+                            <div>
+                                <div class="text-muted">Total dû</div>
+                                <div class="font-semibold">${formatCurrency(r.montant_initial)}</div>
+                            </div>
+                            <div>
+                                <div class="text-muted">Restant</div>
+                                <div class="font-semibold" style="color:var(--brand-primary)">${formatCurrency(r.capital_restant)}</div>
+                            </div>
+                            <div>
+                                <div class="text-muted">Retard</div>
+                                <div class="font-semibold ${r.penalites_retard > 0 ? 'text-rose' : ''}">${formatCurrency(r.penalites_retard)}</div>
+                            </div>
+                            <div>
+                                <div class="text-muted">Prochaine échéance</div>
+                                <div class="font-semibold">${r.prochaine_echeance || '—'}</div>
+                            </div>
+                        </div>
+                        <div class="action-btns">
+                            <button class="btn btn-sm btn-secondary flex-1" onclick="openPaymentFor(${r.credit_id})">Payer</button>
+                            ${r.statut !== 'completed' ? `<button class="btn btn-sm btn-solder flex-1" onclick="confirmSolder(${r.credit_id})">Solder</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Animate bars
+            setTimeout(() => {
+                document.querySelectorAll('.progress-bar-fill').forEach(bar => {
+                    bar.style.width = bar.dataset.target + '%';
+                });
+            }, 100);
+        }
+
+        function renderTable(search = '') {
+            let filtered = allRemboursements;
+            if (search) {
+                filtered = filtered.filter(r =>
+                    r.client_nom.toLowerCase().includes(search) ||
+                    String(r.credit_id).includes(search)
+                );
+            }
+
+            const tbody = document.getElementById('remboursements-tbody');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:32px">Aucun crédit trouvé</td></tr>';
+            } else {
+                tbody.innerHTML = filtered.map(r => `
+                    <tr>
+                        <td class="text-muted">#${r.credit_id}</td>
+                        <td>
+                            <div class="font-medium">${r.client_nom}</div>
+                            <div class="text-xs text-muted">${r.client_email || ''}</div>
+                        </td>
+                        <td>${formatCurrency(r.montant_initial)}</td>
+                        <td><strong>${formatCurrency(r.capital_restant)}</strong></td>
+                        <td>
+                            <div class="flex items-center gap-2">
+                                <div class="progress-bar-track" style="width:60px;height:6px;">
+                                    <div class="progress-bar-fill" style="width:${r.pourcentage_rembourse}%"></div>
+                                </div>
+                                <span class="text-xs">${r.pourcentage_rembourse}%</span>
+                            </div>
+                        </td>
+                        <td>
+                            ${r.jours_retard > 0 ? `<span class="text-rose font-medium">${r.jours_retard}j</span>` : '<span class="text-muted">Aucun</span>'}
+                        </td>
+                        <td>${creditStatusBadge(r.statut)}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function openPaymentFor(id) {
+            document.getElementById('p-credit').value = id;
+            MODAL.open('modal-add-paiement');
+        }
+
+        function confirmSolder(id) {
+            selectedCreditId = id;
+            const r = allRemboursements.find(x => x.credit_id === id);
+            const info = document.getElementById('solder-info');
+            info.innerHTML = `
+                <div><strong>Client:</strong> ${r.client_nom}</div>
+                <div><strong>Capital restant:</strong> ${formatCurrency(r.capital_restant)}</div>
+                <div class="mt-2 text-xs opacity-75">Le solde anticipé clôturera le crédit après un dernier versement égal au capital restant plus les pénalités éventuelles.</div>
+            `;
+            info.classList.remove('hidden');
+            MODAL.open('modal-confirm-solder');
+        }
+
+        document.getElementById('confirm-solder-btn').addEventListener('click', async () => {
+            if (!selectedCreditId) return;
+            try {
+                const res = await API.credits.solder(selectedCreditId);
+                TOAST.success('Succès', res.message || 'Crédit soldé avec succès.');
+                MODAL.close('modal-confirm-solder');
+                loadData();
+            } catch (err) {
+                TOAST.error('Erreur', err.message);
+            }
+        });
+
+        document.getElementById('search-remboursements').addEventListener('input', (e) => {
+            renderTable(e.target.value.toLowerCase());
+        });
+
+        // Add paiement form
+        document.getElementById('form-add-paiement').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errEl = document.getElementById('paiement-form-error');
+            const btn = document.getElementById('submit-paiement');
+            errEl.classList.add('hidden');
+            btn.disabled = true;
+            btn.textContent = 'Traitement...';
+
+            try {
+                const credit_id = parseInt(document.getElementById('p-credit').value);
+                const montant = parseFloat(document.getElementById('p-montant').value);
+
+                await API.paiements.create({ credit_id, montant });
+
+                TOAST.success('Paiement enregistré !', `Le remboursement a été pris en compte.`);
+                MODAL.close('modal-add-paiement');
+                document.getElementById('form-add-paiement').reset();
+                loadData();
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Confirmer le paiement';
+            }
+        });
+
+        loadData();
+    </script>
+</body>
+
+</html>

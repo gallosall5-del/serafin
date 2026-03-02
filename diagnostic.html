@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Terafin — Diagnostic de Connexion</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            padding: 40px;
+            line-height: 1.5;
+            background: #0f172a;
+            color: #fff;
+        }
+
+        .card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid #334155;
+        }
+
+        .status {
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .success {
+            background: #065f46;
+            color: #34d399;
+        }
+
+        .error {
+            background: #7f1d1d;
+            color: #f87171;
+        }
+
+        .pending {
+            background: #713f12;
+            color: #fbbf24;
+        }
+
+        pre {
+            background: #000;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 10px 20px;
+            background: #3b82f6;
+            border: none;
+            color: white;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Diagnostic de Connexion Terafin</h1>
+    <p>Ce test va vérifier la connectivité entre votre navigateur et l'API Render.</p>
+
+    <button onclick="runTests()">Lancer les tests</button>
+
+    <div class="card">
+        <h3>1. Test de base (Ping API)</h3>
+        <p id="test1-status"><span class="status pending">En attente...</span></p>
+        <pre id="test1-result"></pre>
+    </div>
+
+    <div class="card">
+        <h3>2. Test de Pré-vol (CORS OPTIONS)</h3>
+        <p id="test2-status"><span class="status pending">En attente...</span></p>
+        <pre id="test2-result"></pre>
+    </div>
+
+    <div class="card">
+        <h3>3. Test d'Authentification (Simulé)</h3>
+        <p id="test3-status"><span class="status pending">En attente...</span></p>
+        <pre id="test3-result"></pre>
+    </div>
+
+    <script>
+        const API_URL = 'https://terafin-api.onrender.com';
+
+        async function runTests() {
+            // Test 1: Simple GET (No headers)
+            try {
+                const res = await fetch(API_URL + '/');
+                const data = await res.json();
+                document.getElementById('test1-status').innerHTML = '<span class="status success">SUCCÈS</span>';
+                document.getElementById('test1-result').textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('test1-status').innerHTML = '<span class="status error">ÉCHEC</span>';
+                document.getElementById('test1-result').textContent = err.toString();
+            }
+
+            // Test 2: GET with Headers (Triggers CORS preflight)
+            try {
+                const res = await fetch(API_URL + '/credits/', {
+                    method: 'OPTIONS',
+                });
+                document.getElementById('test2-status').innerHTML = '<span class="status success">SUCCÈS (Serveur a répondu)</span>';
+                document.getElementById('test2-result').textContent = "Statut: " + res.status + " " + res.statusText;
+            } catch (err) {
+                document.getElementById('test2-status').innerHTML = '<span class="status error">ÉCHEC CORS</span>';
+                document.getElementById('test2-result').textContent = err.toString() + "\nCela indique souvent que le navigateur bloque la requête vers Render.";
+            }
+
+            // Test 3: Auth Attempt (CORS POST Test)
+            try {
+                const params = new URLSearchParams({ username: 'test@example.com', password: 'password' });
+                const res = await fetch(API_URL + '/auth/connexion', {
+                    method: 'POST',
+                    body: params
+                });
+                const data = await res.json();
+                document.getElementById('test3-status').innerHTML = '<span class="status success">CONNECTÉ (Réponse reçue)</span>';
+                document.getElementById('test3-result').textContent = "Statut: " + res.status + "\n" + JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('test3-status').innerHTML = '<span class="status error">ÉCHEC LOGIN</span>';
+                document.getElementById('test3-result').textContent = err.toString();
+            }
+        }
+    </script>
+</body>
+
+</html>

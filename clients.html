@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clients — Terafin</title>
+    <link rel="stylesheet" href="styles/main.css" />
+    <link rel="stylesheet" href="styles/sidebar.css" />
+</head>
+
+<body class="app-layout">
+    <div id="sidebar-container"></div>
+    <button class="theme-toggle" id="theme-toggle"></button>
+
+    <main class="main-content" id="main-content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Gestion des Clients</h1>
+                <p class="page-subtitle">Gérez votre portefeuille clients et exportez vos données</p>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn btn-secondary" id="export-clients">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Export Excel
+                </button>
+                <button class="btn btn-primary" data-modal-open="modal-add-client">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Ajouter un client
+                </button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div class="table-toolbar">
+                <span class="table-title" id="clients-count">Clients</span>
+                <div class="flex gap-2">
+                    <div class="search-box">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input type="text" id="search-input" placeholder="Rechercher par nom, email..." />
+                    </div>
+                </div>
+            </div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nom complet</th>
+                            <th>Contact</th>
+                            <th>Revenus</th>
+                            <th>Profession</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clients-tbody">
+                        <tr>
+                            <td colspan="6" class="text-center text-muted" style="padding:40px">
+                                <div class="spinner" style="margin:0 auto 12px"></div>
+                                Chargement des clients...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </main>
+
+    <!-- Modal: Add Client -->
+    <div class="modal-overlay" id="modal-add-client">
+        <div class="modal" style="max-width:600px">
+            <div class="modal-header">
+                <h2 class="modal-title">Nouveau Client</h2>
+                <button class="modal-close" data-modal-close="modal-add-client">✕</button>
+            </div>
+            <form id="form-add-client">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="c-nom">Nom complet *</label>
+                        <input type="text" id="c-nom" name="nom" class="form-control" placeholder="Mamadou Diallo"
+                            required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="c-email">Email *</label>
+                        <input type="email" id="c-email" name="email" class="form-control"
+                            placeholder="email@exemple.com" required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="c-telephone">Téléphone *</label>
+                        <input type="text" id="c-telephone" name="telephone" class="form-control"
+                            placeholder="77 000 00 00" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="c-profession">Profession *</label>
+                        <input type="text" id="c-profession" name="profession" class="form-control"
+                            placeholder="Commerçant, Salarié..." required />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="c-adresse">Adresse *</label>
+                    <input type="text" id="c-adresse" name="adresse" class="form-control"
+                        placeholder="Dakar, Plateau..." required />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="c-revenus">Revenus mensuels (CFA) *</label>
+                    <input type="number" id="c-revenus" name="revenus" class="form-control" placeholder="350000" min="0"
+                        required />
+                </div>
+
+                <div id="client-form-error" class="hidden"
+                    style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:10px 14px;font-size:0.875rem;color:#ef4444;margin-bottom:16px;">
+                </div>
+
+                <div class="flex gap-3" style="justify-content:flex-end;margin-top:8px;">
+                    <button type="button" class="btn btn-secondary" data-modal-close="modal-add-client">Annuler</button>
+                    <button type="submit" class="btn btn-primary" id="submit-client">
+                        <span id="client-btn-text">Créer le client</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Client Detail -->
+    <div class="modal-overlay" id="modal-client-detail">
+        <div class="modal" style="max-width:720px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="detail-client-name">Détail Client</h2>
+                <button class="modal-close" data-modal-close="modal-client-detail">✕</button>
+            </div>
+            <div id="client-detail-content" class="p-6">
+                <!-- filled by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Confirm Delete -->
+    <div class="modal-overlay" id="modal-confirm-delete">
+        <div class="modal" style="max-width:400px;text-align:center;">
+            <div style="font-size:2.5rem;margin-bottom:16px;">🗑️</div>
+            <h2 class="modal-title" style="margin-bottom:8px;">Supprimer ce client ?</h2>
+            <p class="text-muted" style="margin-bottom:24px;font-size:0.9rem;">Cette action est irréversible. Tous les
+                crédits associés seront également impactés.</p>
+            <div class="flex gap-3" style="justify-content:center;">
+                <button class="btn btn-secondary" data-modal-close="modal-confirm-delete">Annuler</button>
+                <button class="btn btn-danger" id="confirm-delete-btn">Supprimer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/shared.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script>
+        if (!AUTH.requireAuth()) { }
+        THEME.init();
+        renderSidebar('clients.html');
+        initShared();
+
+        let allClients = [];
+        let pendingDeleteId = null;
+        const PAGE_SIZE = 10;
+        let currentPage = 1;
+
+        async function loadClients() {
+            try {
+                const data = await API.clients.list();
+                allClients = Array.isArray(data) ? data : (data?.items || []);
+                document.getElementById('clients-count').textContent = `Clients (${allClients.length})`;
+                renderTable();
+            } catch (err) {
+                document.getElementById('clients-tbody').innerHTML =
+                    `<tr><td colspan="6" class="text-center" style="padding:32px;color:#ef4444">Erreur : ${err.message}</td></tr>`;
+            }
+        }
+
+        function renderTable(filter = '') {
+            const filtered = filter ? allClients.filter(c =>
+                (c.nom || '').toLowerCase().includes(filter) ||
+                (c.email || '').toLowerCase().includes(filter) ||
+                (c.telephone || '').toLowerCase().includes(filter)
+            ) : allClients;
+
+            const total = filtered.length;
+            const pages = Math.ceil(total / PAGE_SIZE);
+            if (currentPage > pages) currentPage = 1;
+
+            const slice = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+            const tbody = document.getElementById('clients-tbody');
+
+            if (slice.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:32px">Aucun client trouvé</td></tr>';
+            } else {
+                tbody.innerHTML = slice.map(c => `
+                    <tr>
+                        <td class="text-muted">#${c.id}</td>
+                        <td><strong>${c.nom || '—'}</strong></td>
+                        <td>
+                            <div class="text-sm">${c.email}</div>
+                            <div class="text-xs text-muted">${c.telephone || ''}</div>
+                        </td>
+                        <td>${formatCurrency(c.revenus)}</td>
+                        <td><span class="text-sm">${c.profession || '—'}</span></td>
+                        <td>
+                            <div class="flex gap-2">
+                                <button class="btn btn-sm btn-secondary" onclick="viewClientDetail(${c.id})">🔍</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteClient(${c.id})">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            const pag = document.getElementById('pagination');
+            if (pages <= 1) { pag.innerHTML = ''; return; }
+            let html = `<button class="pagination-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
+            for (let i = 1; i <= pages; i++) html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+            html += `<button class="pagination-btn" onclick="changePage(${currentPage + 1})" ${currentPage === pages ? 'disabled' : ''}>›</button>`;
+            pag.innerHTML = html;
+        }
+
+        function changePage(p) { currentPage = p; renderTable(document.getElementById('search-input').value.toLowerCase()); }
+
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            currentPage = 1;
+            renderTable(e.target.value.toLowerCase());
+        });
+
+        async function viewClientDetail(id) {
+            const c = allClients.find(x => x.id === id);
+            if (!c) return;
+
+            document.getElementById('detail-client-name').textContent = c.nom;
+            document.getElementById('client-detail-content').innerHTML = `
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="card p-4">
+                        <h4 class="text-xs font-bold uppercase text-muted mb-3">Informations de contact</h4>
+                        <div class="mb-2"><span class="text-muted text-xs">Email:</span> <div class="font-medium">${c.email}</div></div>
+                        <div class="mb-2"><span class="text-muted text-xs">Téléphone:</span> <div class="font-medium">${c.telephone}</div></div>
+                        <div class="mb-2"><span class="text-muted text-xs">Adresse:</span> <div class="font-medium">${c.adresse || '—'}</div></div>
+                    </div>
+                    <div class="card p-4">
+                        <h4 class="text-xs font-bold uppercase text-muted mb-3">Profil Financier</h4>
+                        <div class="mb-2"><span class="text-muted text-xs">Profession:</span> <div class="font-medium">${c.profession}</div></div>
+                        <div class="mb-2"><span class="text-muted text-xs">Revenus mensuels:</span> <div class="font-medium">${formatCurrency(c.revenus)}</div></div>
+                        <div class="mb-2"><span class="text-muted text-xs">Client depuis:</span> <div class="font-medium">${formatDateTime(c.created_at)}</div></div>
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <h4 class="text-xs font-bold uppercase text-muted mb-3">Crédits associés</h4>
+                    <div id="client-credits-wrap">Chargement des crédits...</div>
+                </div>
+            `;
+            MODAL.open('modal-client-detail');
+
+            try {
+                const credits = await API.clients.credits(id);
+                const list = Array.isArray(credits) ? credits : (credits?.items || []);
+                if (list.length === 0) {
+                    document.getElementById('client-credits-wrap').innerHTML = '<p class="text-muted text-xs italic">Aucun crédit pour ce client.</p>';
+                    return;
+                }
+                document.getElementById('client-credits-wrap').innerHTML = `
+                    <table style="width:100%; font-size:0.85rem">
+                        <thead><tr><th>ID</th><th>Montant</th><th>Durée</th><th>Mensualité</th><th>Statut</th></tr></thead>
+                        <tbody>
+                            ${list.map(cr => `
+                                <tr>
+                                    <td>#${cr.id}</td>
+                                    <td>${formatCurrency(cr.montant)}</td>
+                                    <td>${cr.duree} mois</td>
+                                    <td>${formatCurrency(cr.mensualite)}</td>
+                                    <td>${creditStatusBadge(cr.statut)}</td>
+                                </tr>`).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (err) {
+                document.getElementById('client-credits-wrap').innerHTML = `<p class="text-rose text-xs">Erreur: ${err.message}</p>`;
+            }
+        }
+
+        function deleteClient(id) {
+            pendingDeleteId = id;
+            MODAL.open('modal-confirm-delete');
+        }
+
+        document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+            if (!pendingDeleteId) return;
+            try {
+                await API.clients.delete(pendingDeleteId);
+                TOAST.success('Client supprimé', 'Le client a été supprimé.');
+                MODAL.close('modal-confirm-delete');
+                loadClients();
+            } catch (err) {
+                TOAST.error('Erreur', err.message);
+            }
+        });
+
+        document.getElementById('form-add-client').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-client');
+            const errEl = document.getElementById('client-form-error');
+
+            errEl.classList.add('hidden');
+            btn.disabled = true;
+            btn.textContent = 'Création...';
+
+            try {
+                const payload = {
+                    nom: document.getElementById('c-nom').value.trim(),
+                    email: document.getElementById('c-email').value.trim(),
+                    telephone: document.getElementById('c-telephone').value.trim(),
+                    adresse: document.getElementById('c-adresse').value.trim(),
+                    profession: document.getElementById('c-profession').value.trim(),
+                    revenus: parseFloat(document.getElementById('c-revenus').value) || 0,
+                };
+
+                await API.clients.create(payload);
+                TOAST.success('Succès', 'Client ajouté au portefeuille.');
+                MODAL.close('modal-add-client');
+                document.getElementById('form-add-client').reset();
+                loadClients();
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Créer le client';
+            }
+        });
+
+        document.getElementById('export-clients').addEventListener('click', async () => {
+            try {
+                const blob = await API.clients.exportExcel();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `clients_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                TOAST.success('Succès', 'Exportation terminée.');
+            } catch (err) {
+                TOAST.error('Erreur export', err.message);
+            }
+        });
+
+        loadClients();
+    </script>
+</body>
+
+</html>

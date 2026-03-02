@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Connexion — Terafin</title>
+  <meta name="description" content="Connectez-vous à Terafin, votre système de gestion de crédit premium." />
+  <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/auth.css" />
+</head>
+
+<body class="auth-page">
+
+  <!-- Theme Toggle -->
+  <button class="theme-toggle-auth" id="theme-toggle" title="Changer le thème">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+    Thème
+  </button>
+
+  <div class="auth-card" role="main">
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" />
+          <path d="M2 17l10 5 10-5" />
+          <path d="M2 12l10 5 10-5" />
+        </svg>
+      </div>
+      <span class="auth-logo-text">Terafin</span>
+    </div>
+
+    <h1 class="auth-title">Bon retour </h1>
+    <p class="auth-sub">Connectez-vous à votre espace de gestion de crédit.</p>
+
+    <form class="auth-form" id="login-form" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="email">Adresse email</label>
+        <div class="input-with-icon">
+          <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,12 2,6" />
+          </svg>
+          <input type="email" id="email" name="email" class="form-control" placeholder="votre@email.com"
+            autocomplete="email" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Mot de passe</label>
+        <div class="input-with-icon">
+          <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <input type="password" id="password" name="password" class="form-control" placeholder="Votre mot de passe"
+            autocomplete="current-password" required />
+          <button type="button" class="input-toggle" id="toggle-password" aria-label="Afficher le mot de passe">
+            <svg id="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Error message -->
+      <div id="login-error" class="hidden" style="
+        background: rgba(239,68,68,.1);
+        border: 1px solid rgba(239,68,68,.2);
+        border-radius: 10px;
+        padding: 12px 16px;
+        font-size: .875rem;
+        color: #ef4444;
+        margin-bottom: 16px;
+      "></div>
+
+      <button type="submit" class="auth-submit" id="submit-btn">
+        <span id="btn-text">Se connecter</span>
+        <span id="btn-spinner" class="spinner hidden" style="width:18px;height:18px;border-width:2px;"></span>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Un code OTP sera envoyé à votre email après la connexion.</p>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/shared.js"></script>
+  <script>
+    // Apply theme immediately
+    THEME.init();
+
+    // Redirect if already logged in
+    if (AUTH.isAuthenticated()) window.location.href = 'dashboard.html';
+
+    // Password toggle
+    document.getElementById('toggle-password').addEventListener('click', function () {
+      const input = document.getElementById('password');
+      const isText = input.type === 'text';
+      input.type = isText ? 'password' : 'text';
+      document.getElementById('eye-icon').innerHTML = isText
+        ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'
+        : '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+    });
+
+    // Form submit
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const errEl = document.getElementById('login-error');
+      const btnText = document.getElementById('btn-text');
+      const spinner = document.getElementById('btn-spinner');
+      const submitBtn = document.getElementById('submit-btn');
+
+      errEl.classList.add('hidden');
+      btnText.textContent = 'Connexion...';
+      spinner.classList.remove('hidden');
+      submitBtn.disabled = true;
+
+      try {
+        // Backend: POST /auth/connexion with FormData {username: email, password}
+        const resp = await API.auth.login(email, password);
+        // In dev mode, the OTP is returned directly in the message
+        if (resp && resp.message && resp.message.includes('OTP est')) {
+          const otpCode = resp.message.split('est ')[1];
+          TOAST?.info('Mode dev', `Votre OTP : ${otpCode}`);
+        }
+        AUTH.savePendingEmail(email);
+        window.location.href = 'otp.html';
+      } catch (err) {
+        errEl.textContent = err.message || 'Identifiants incorrects. Veuillez réessayer.';
+        errEl.classList.remove('hidden');
+        btnText.textContent = 'Se connecter';
+        spinner.classList.add('hidden');
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+
+</html>

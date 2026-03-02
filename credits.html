@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crédits — Terafin</title>
+    <link rel="stylesheet" href="styles/main.css" />
+    <link rel="stylesheet" href="styles/sidebar.css" />
+    <style>
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 6px 14px;
+            border-radius: 99px;
+            font-size: .8rem;
+            font-weight: 600;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .filter-tab.active {
+            background: var(--brand-primary);
+            border-color: var(--brand-primary);
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body class="app-layout">
+    <div id="sidebar-container"></div>
+    <button class="theme-toggle" id="theme-toggle"></button>
+
+    <main class="main-content" id="main-content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Gestion des Crédits</h1>
+                <p class="page-subtitle">Gérez et validez les dossiers de crédit</p>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn btn-secondary" id="export-credits">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Export Excel
+                </button>
+                <button class="btn btn-primary" data-modal-open="modal-add-credit">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Nouveau crédit
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="filter-tabs mb-6">
+            <button class="filter-tab active" data-filter="all">Tous</button>
+            <button class="filter-tab" data-filter="pending">En attente</button>
+            <button class="filter-tab" data-filter="active">Actifs</button>
+            <button class="filter-tab" data-filter="overdue">En retard</button>
+            <button class="filter-tab" data-filter="completed">Terminés</button>
+        </div>
+
+        <div class="table-container">
+            <div class="table-toolbar">
+                <span class="table-title" id="credits-count">Crédits</span>
+                <div class="search-box">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input type="text" id="search-credits" placeholder="Rechercher par ID ou client..." />
+                </div>
+            </div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Client</th>
+                            <th>Montant</th>
+                            <th>Taux</th>
+                            <th>Durée</th>
+                            <th>Mensualité</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="credits-tbody">
+                        <tr>
+                            <td colspan="8" class="text-center text-muted" style="padding:40px">
+                                <div class="spinner" style="margin:0 auto 12px"></div>Chargement...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="credits-pagination"></div>
+        </div>
+    </main>
+
+    <!-- Modal: Add Credit -->
+    <div class="modal-overlay" id="modal-add-credit">
+        <div class="modal" style="max-width:600px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Nouveau Dossier de Crédit</h2>
+                <button class="modal-close" data-modal-close="modal-add-credit">✕</button>
+            </div>
+            <form id="form-add-credit">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="cr-client">Client *</label>
+                        <select id="cr-client" class="form-control" required>
+                            <option value="">-- Sélectionner un client --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="cr-montant">Montant (CFA) *</label>
+                        <input type="number" id="cr-montant" class="form-control" placeholder="Ex: 1000000" min="0"
+                            required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="cr-taux">Taux annuel (%) *</label>
+                        <input type="number" id="cr-taux" class="form-control" placeholder="12" step="0.1" min="0"
+                            required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="cr-duree">Durée (mois) *</label>
+                        <input type="number" id="cr-duree" class="form-control" placeholder="24" min="1" required />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cr-type">Type d'intérêt *</label>
+                    <select id="cr-type" class="form-control">
+                        <option value="simple">Intérêt Simple</option>
+                        <option value="compose">Intérêt Composé</option>
+                    </select>
+                </div>
+
+                <div id="mensualite-preview" class="hidden"
+                    style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:12px;padding:14px 18px;margin-bottom:16px;text-align:center;">
+                    <span class="text-muted text-sm">Mensualité estimée :</span>
+                    <div style="font-size:1.4rem;font-weight:800;color:var(--brand-primary)" id="preview-mensualite">—
+                    </div>
+                </div>
+
+                <div id="credit-form-error" class="hidden"
+                    style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:10px 14px;font-size:0.875rem;color:#ef4444;margin-bottom:16px;">
+                </div>
+
+                <div class="flex gap-3" style="justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary" data-modal-close="modal-add-credit">Annuler</button>
+                    <button type="submit" class="btn btn-primary" id="submit-credit">Créer le dossier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Confirm Validation -->
+    <div class="modal-overlay" id="modal-validate">
+        <div class="modal" style="max-width:400px;text-align:center;">
+            <div style="font-size:2.5rem;margin-bottom:16px;">✅</div>
+            <h2 class="modal-title" style="margin-bottom:8px;">Approuver ce crédit ?</h2>
+            <p class="text-muted" style="margin-bottom:24px;font-size:0.9rem;">Le crédit deviendra
+                <strong>Actif</strong> et les fonds seront considérés comme débloqués.
+            </p>
+            <div class="flex gap-3" style="justify-content:center;">
+                <button class="btn btn-secondary" data-modal-close="modal-validate">Fermer</button>
+                <button class="btn btn-success" id="confirm-validate-btn">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/shared.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script>
+        if (!AUTH.requireAuth()) { }
+        THEME.init();
+        renderSidebar('credits.html');
+        initShared();
+
+        let allCredits = [];
+        let allClients = [];
+        let currentFilter = 'all';
+        let currentPage = 1;
+        const PAGE_SIZE = 10;
+        let pendingValidateId = null;
+
+        async function loadData() {
+            // Load Credits
+            try {
+                const creditsData = await API.credits.list();
+                allCredits = Array.isArray(creditsData) ? creditsData : (creditsData?.items || []);
+                renderTable();
+            } catch (err) {
+                let msg = err.message;
+                if (msg === 'Failed to fetch') msg = 'Erreur de connexion (Le serveur Render met du temps à se réveiller ou problème réseau).';
+                document.getElementById('credits-tbody').innerHTML =
+                    `<tr><td colspan="8" class="text-center" style="padding:32px;color:#ef4444">Erreur: ${msg}</td></tr>`;
+            }
+
+            // Load Clients for the modal
+            try {
+                const clientsData = await API.clients.list();
+                allClients = Array.isArray(clientsData) ? clientsData : (clientsData?.items || []);
+
+                const sel = document.getElementById('cr-client');
+                if (allClients.length === 0) {
+                    sel.innerHTML = '<option value="">-- Aucun client trouvé (Créez-en un d\'abord) --</option>';
+                } else {
+                    sel.innerHTML = '<option value="">-- Sélectionner un client --</option>' +
+                        allClients.map(c => `<option value="${c.id}">${c.nom} (#${c.id})</option>`).join('');
+                }
+            } catch (err) {
+                console.error("Erreur chargement clients:", err);
+                document.getElementById('cr-client').innerHTML = '<option value="">-- Erreur lors du chargement des clients --</option>';
+            }
+        }
+
+        function renderTable(search = '') {
+            let filtered = allCredits;
+            if (currentFilter !== 'all') {
+                const statusMap = {
+                    'pending': ['pending', 'en attente'],
+                    'active': ['active', 'actif'],
+                    'overdue': ['overdue', 'en retard'],
+                    'completed': ['completed', 'termine', 'terminé', 'soldé']
+                };
+                filtered = filtered.filter(c => {
+                    const allowed = statusMap[currentFilter] || [currentFilter];
+                    return allowed.includes(c.statut.toLowerCase());
+                });
+            }
+            if (search) {
+                filtered = filtered.filter(c => {
+                    const client = allClients.find(cl => cl.id === c.client_id);
+                    return String(c.id).includes(search) || (client && client.nom.toLowerCase().includes(search));
+                });
+            }
+
+            document.getElementById('credits-count').textContent = `Crédits (${filtered.length})`;
+            const pages = Math.ceil(filtered.length / PAGE_SIZE);
+            if (currentPage > pages) currentPage = 1;
+            const slice = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+            const tbody = document.getElementById('credits-tbody');
+            const user = AUTH.getCurrentUser();
+            const isAdminOrSup = user && (user.role === 'admin' || user.role === 'superviseur');
+
+            if (slice.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:32px">Aucun crédit trouvé</td></tr>';
+            } else {
+                tbody.innerHTML = slice.map(c => {
+                    const client = allClients.find(cl => cl.id === c.client_id);
+                    const canApprove = isAdminOrSup && c.statut === 'pending';
+                    return `
+                        <tr>
+                            <td class="text-muted">#${c.id}</td>
+                            <td><strong>${client ? client.nom : `Client #${c.client_id}`}</strong></td>
+                            <td>${formatCurrency(c.montant)}</td>
+                            <td><span class="text-xs">${c.taux}% (${c.type_interet})</span></td>
+                            <td>${c.duree} mois</td>
+                            <td><strong>${formatCurrency(c.mensualite)}</strong></td>
+                            <td>${creditStatusBadge(c.statut)}</td>
+                            <td>
+                                <div class="flex gap-2">
+                                    ${canApprove ? `<button class="btn btn-sm btn-success" onclick="openApprove(${c.id})">Valider</button>` : ''}
+                                    <button class="btn btn-sm btn-secondary" onclick="viewDetails(${c.id})">🔍</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            const pag = document.getElementById('credits-pagination');
+            if (pages <= 1) { pag.innerHTML = ''; return; }
+            let html = `<button class="pagination-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
+            for (let i = 1; i <= pages; i++) html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+            html += `<button class="pagination-btn" onclick="changePage(${currentPage + 1})" ${currentPage === pages ? 'disabled' : ''}>›</button>`;
+            pag.innerHTML = html;
+        }
+
+        function changePage(p) { currentPage = p; renderTable(document.getElementById('search-credits').value.toLowerCase()); }
+
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentFilter = tab.dataset.filter;
+                currentPage = 1;
+                renderTable(document.getElementById('search-credits').value.toLowerCase());
+            });
+        });
+
+        document.getElementById('search-credits').addEventListener('input', (e) => {
+            currentPage = 1;
+            renderTable(e.target.value.toLowerCase());
+        });
+
+        function openApprove(id) {
+            pendingValidateId = id;
+            MODAL.open('modal-validate');
+        }
+
+        document.getElementById('confirm-validate-btn').addEventListener('click', async () => {
+            if (!pendingValidateId) return;
+            try {
+                await API.credits.validate(pendingValidateId);
+                TOAST.success('Crédit approuvé', 'Le dossier a été activé.');
+                MODAL.close('modal-validate');
+                loadData();
+            } catch (err) {
+                TOAST.error('Erreur', err.message);
+            }
+        });
+
+        function computePreview() {
+            const m = parseFloat(document.getElementById('cr-montant').value);
+            const t = parseFloat(document.getElementById('cr-taux').value);
+            const d = parseInt(document.getElementById('cr-duree').value);
+            const type = document.getElementById('cr-type').value;
+            if (!m || !t || !d) { document.getElementById('mensualite-preview').classList.add('hidden'); return; }
+            const tm = t / 100 / 12;
+            let mensualite = type === 'compose' ? m * tm / (1 - Math.pow(1 + tm, -d)) : m / d + (m * t / 100) / 12;
+            document.getElementById('preview-mensualite').textContent = formatCurrency(Math.round(mensualite));
+            document.getElementById('mensualite-preview').classList.remove('hidden');
+        }
+
+        ['cr-montant', 'cr-taux', 'cr-duree', 'cr-type'].forEach(id => {
+            document.getElementById(id).addEventListener('input', computePreview);
+        });
+
+        document.getElementById('form-add-credit').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-credit');
+            const errEl = document.getElementById('credit-form-error');
+            errEl.classList.add('hidden');
+            btn.disabled = true;
+            btn.textContent = 'Traitement...';
+
+            try {
+                await API.credits.create({
+                    client_id: parseInt(document.getElementById('cr-client').value),
+                    montant: parseFloat(document.getElementById('cr-montant').value),
+                    taux: parseFloat(document.getElementById('cr-taux').value),
+                    duree: parseInt(document.getElementById('cr-duree').value),
+                    type_interet: document.getElementById('cr-type').value,
+                });
+                TOAST.success('Dossier créé', 'Le crédit est en attente de validation.');
+                MODAL.close('modal-add-credit');
+                document.getElementById('form-add-credit').reset();
+                loadData();
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Créer le dossier';
+            }
+        });
+
+        document.getElementById('export-credits').addEventListener('click', async () => {
+            try {
+                const blob = await API.credits.exportExcel();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `credits_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                URL.revokeObjectURL(url);
+                TOAST.success('Succès', 'Exportation réussie.');
+            } catch (err) {
+                TOAST.error('Erreur export', err.message);
+            }
+        });
+
+        loadData();
+    </script>
+</body>
+
+</html>
