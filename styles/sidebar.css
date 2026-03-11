@@ -37,7 +37,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, .35);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .2);
 }
 
 .sidebar-brand-logo svg {

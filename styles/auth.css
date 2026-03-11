@@ -28,7 +28,7 @@
 .auth-page::before {
     width: 500px;
     height: 500px;
-    background: rgba(99, 102, 241, .18);
+    background: rgba(255, 255, 255, .04);
     top: -150px;
     left: -150px;
 }
@@ -36,7 +36,7 @@
 .auth-page::after {
     width: 400px;
     height: 400px;
-    background: rgba(99, 102, 241, .12);
+    background: rgba(255, 255, 255, .03);
     bottom: -100px;
     right: -100px;
     animation-delay: -4s;
@@ -167,12 +167,12 @@
     justify-content: center;
     gap: 10px;
     transition: opacity var(--transition-fast), box-shadow var(--transition-fast);
-    box-shadow: 0 4px 20px rgba(99, 102, 241, .3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .2);
 }
 
 .auth-submit:hover {
     opacity: .92;
-    box-shadow: 0 6px 28px rgba(99, 102, 241, .45);
+    box-shadow: 0 6px 28px rgba(0, 0, 0, .3);
 }
 
 .auth-submit:disabled {
@@ -212,12 +212,12 @@
 
 .otp-digit:focus {
     border-color: var(--brand-primary);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, .18);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, .1);
 }
 
 .otp-digit.filled {
     border-color: var(--brand-primary);
-    background: rgba(99, 102, 241, .06);
+    background: rgba(0, 0, 0, .04);
 }
 
 .otp-resend {
