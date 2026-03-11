@@ -21,7 +21,7 @@ function renderSidebar(activePage = '') {
         { page: 'clients.html', icon: usersIcon, label: 'Clients', roles: ['admin', 'superviseur', 'agent'] },
         { page: 'credits.html', icon: creditIcon, label: 'Crédits', roles: ['admin', 'superviseur', 'agent'] },
         { page: 'paiements.html', icon: walletIcon, label: 'Paiements', roles: ['admin', 'superviseur', 'agent'] },
-        { page: 'caisse.html', icon: caisseIcon, label: 'Caisse', roles: ['admin', 'superviseur'] },
+        { page: 'caisse.html', icon: caisseIcon, label: 'Caisse', roles: ['admin', 'superviseur', 'agent'] },
       ]
     },
     {

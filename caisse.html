@@ -207,7 +207,7 @@
     <script src="js/shared.js"></script>
     <script src="js/sidebar.js"></script>
     <script>
-        if (!AUTH.requireRole(['admin', 'superviseur'])) { }
+        if (!AUTH.requireAuth()) { }
         THEME.init();
         renderSidebar('caisse.html');
         initShared();
