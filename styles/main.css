@@ -10,7 +10,6 @@
   --brand-primary: #6366f1;
   --brand-secondary: #8b5cf6;
   --brand-accent: #06b6d4;
-  --brand-gradient: #6366f1;
 
   /* Status Colors */
   --status-active: #10b981;
@@ -325,7 +324,7 @@ body {
 }
 
 .btn-primary {
-  background: var(--brand-gradient);
+  background: var(--brand-primary);
   color: #fff;
   box-shadow: 0 4px 14px rgba(99, 102, 241, .3);
 }
@@ -636,7 +635,7 @@ select.form-control {
 
 .progress-bar-fill {
   height: 100%;
-  background: var(--brand-gradient);
+  background: var(--brand-primary);
   border-radius: 99px;
   transition: width .8s cubic-bezier(.4, 0, .2, 1);
 }
@@ -706,9 +705,8 @@ select.form-control {
 
 /* ── Loading States ── */
 .skeleton {
-  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  background: var(--bg-card-hover);
+  animation: pulse 1.5s ease-in-out infinite;
   border-radius: 8px;
 }
 
@@ -865,6 +863,18 @@ select.form-control {
 }
 
 /* ── Keyframes ── */
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: .5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
 @keyframes slideInRight {
   from {
     transform: translateX(100%);

@@ -31,7 +31,7 @@
 .sidebar-brand-logo {
     width: 38px;
     height: 38px;
-    background: var(--brand-gradient);
+    background: var(--brand-primary);
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -182,7 +182,7 @@
 .user-avatar {
     width: 36px;
     height: 36px;
-    background: var(--brand-gradient);
+    background: var(--brand-primary);
     border-radius: 10px;
     display: flex;
     align-items: center;
