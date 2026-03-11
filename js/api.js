@@ -128,6 +128,7 @@ const API = (() => {
             create: (data) => request('POST', '/clients/', toForm(data), true),
             update: (id, data) => request('PUT', `/clients/${id}`, toForm(data), true),
             delete: (id) => request('DELETE', `/clients/${id}`),
+            reassign: (id, data) => request('PUT', `/clients/${id}/reassigner`, data),
             exportExcel: () => request('GET', '/clients/export/excel', null, false, 'blob'),
             credits: (id) => request('GET', `/clients/${id}/credits`),
         },
@@ -138,6 +139,8 @@ const API = (() => {
             validate: (id) => request('POST', `/credits/valider/${id}`),
             solder: (id) => request('POST', `/credits/solder/${id}`),
             echeancier: (id) => request('GET', `/credits/echeancier/${id}`),
+            penalites: (id) => request('GET', `/credits/${id}/analyse-penalites`),
+            statsCollecte: () => request('GET', '/credits/stats/collecte'),
             exportExcel: () => request('GET', '/credits/export/excel', null, false, 'blob'),
         },
         paiements: {
@@ -158,6 +161,7 @@ const API = (() => {
             stats: () => request('GET', '/notifications/stats'),
             markRead: (id) => request('PUT', `/notifications/${id}/lire`),
             markAllRead: () => request('PUT', '/notifications/lire-toutes'),
+            testRetard: () => request('POST', '/notifications/tester-retard'),
         },
         utilisateurs: {
             list: () => request('GET', '/auth/utilisateurs'),
@@ -175,6 +179,11 @@ const API = (() => {
                 return request('GET', `/audit/logs?${params}`);
             },
             stats: () => request('GET', '/audit/stats'),
+        },
+        caisse: {
+            stats: () => request('GET', '/caisse/stats'),
+            approvisionner: (data) => request('POST', '/caisse/approvisionner', data),
+            transactions: () => request('GET', '/caisse/transactions'),
         }
     };
 })();

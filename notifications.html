@@ -91,12 +91,23 @@
                 <h1 class="page-title">Notifications</h1>
                 <p class="page-subtitle">Historique des emails et alertes</p>
             </div>
-            <button class="btn btn-secondary" id="mark-all-read">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="20 6 9 17 4 12" />
-                </svg>
-                Tout marquer lu
-            </button>
+            <div class="flex gap-2">
+                <button class="btn btn-secondary" id="test-retard" style="display:none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    Tester retard
+                </button>
+                <button class="btn btn-secondary" id="mark-all-read">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Tout marquer lu
+                </button>
+            </div>
         </div>
 
         <!-- Summary cards -->
@@ -295,6 +306,28 @@
 
         document.getElementById('filter-type').addEventListener('change', () => { currentPage = 1; renderList(); });
         document.getElementById('filter-status').addEventListener('change', () => { currentPage = 1; renderList(); });
+
+        // Show test retard button for admin only
+        const userRole = AUTH.getRole();
+        if (userRole === 'admin') {
+            document.getElementById('test-retard').style.display = '';
+        }
+
+        document.getElementById('test-retard').addEventListener('click', async () => {
+            const btn = document.getElementById('test-retard');
+            btn.disabled = true;
+            btn.textContent = 'Envoi en cours...';
+            try {
+                const res = await API.notifications.testRetard();
+                TOAST.success('Test envoyé', res.message || 'Notifications de retard envoyées.');
+                loadData();
+            } catch (err) {
+                TOAST.error('Erreur', err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Tester retard';
+            }
+        });
 
         loadData();
     </script>

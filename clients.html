@@ -121,6 +121,11 @@
                     <input type="number" id="c-revenus" name="revenus" class="form-control" placeholder="350000" min="0"
                         required />
                 </div>
+                <div class="form-group">
+                    <label class="form-label" for="c-piece">Pièce d'identité</label>
+                    <input type="file" id="c-piece" name="piece_identite" class="form-control" accept="image/*,.pdf" />
+                    <p class="text-xs text-muted mt-1">Formats acceptés : Image ou PDF</p>
+                </div>
 
                 <div id="client-form-error" class="hidden"
                     style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:10px 14px;font-size:0.875rem;color:#ef4444;margin-bottom:16px;">
@@ -146,6 +151,85 @@
             <div id="client-detail-content" class="p-6">
                 <!-- filled by JS -->
             </div>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Client -->
+    <div class="modal-overlay" id="modal-edit-client">
+        <div class="modal" style="max-width:600px">
+            <div class="modal-header">
+                <h2 class="modal-title">Modifier le Client</h2>
+                <button class="modal-close" data-modal-close="modal-edit-client">✕</button>
+            </div>
+            <form id="form-edit-client">
+                <input type="hidden" id="edit-client-id" />
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="ec-nom">Nom complet *</label>
+                        <input type="text" id="ec-nom" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="ec-email">Email *</label>
+                        <input type="email" id="ec-email" class="form-control" required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="ec-telephone">Téléphone *</label>
+                        <input type="text" id="ec-telephone" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="ec-profession">Profession *</label>
+                        <input type="text" id="ec-profession" class="form-control" required />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="ec-adresse">Adresse *</label>
+                    <input type="text" id="ec-adresse" class="form-control" required />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="ec-revenus">Revenus mensuels (CFA) *</label>
+                    <input type="number" id="ec-revenus" class="form-control" min="0" required />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="ec-piece">Pièce d'identité (nouvelle)</label>
+                    <input type="file" id="ec-piece" class="form-control" accept="image/*,.pdf" />
+                </div>
+                <div id="edit-client-error" class="hidden"
+                    style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:10px 14px;font-size:0.875rem;color:#ef4444;margin-bottom:16px;">
+                </div>
+                <div class="flex gap-3" style="justify-content:flex-end;margin-top:8px;">
+                    <button type="button" class="btn btn-secondary"
+                        data-modal-close="modal-edit-client">Annuler</button>
+                    <button type="submit" class="btn btn-primary" id="submit-edit-client">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Reassign Client -->
+    <div class="modal-overlay" id="modal-reassign">
+        <div class="modal" style="max-width:450px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Réassigner le Client</h2>
+                <button class="modal-close" data-modal-close="modal-reassign">✕</button>
+            </div>
+            <form id="form-reassign">
+                <input type="hidden" id="reassign-client-id" />
+                <div class="form-group">
+                    <label class="form-label" for="reassign-agent">Nouvel Agent *</label>
+                    <select id="reassign-agent" class="form-control" required>
+                        <option value="">-- Sélectionner un agent --</option>
+                    </select>
+                </div>
+                <div id="reassign-error" class="hidden"
+                    style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:10px 14px;font-size:0.875rem;color:#ef4444;margin-bottom:16px;">
+                </div>
+                <div class="flex gap-3" style="justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary" data-modal-close="modal-reassign">Annuler</button>
+                    <button type="submit" class="btn btn-primary" id="submit-reassign">Réassigner</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -222,11 +306,13 @@
                         <td>
                             <div class="flex gap-2">
                                 <button class="btn btn-sm btn-secondary" onclick="viewClientDetail(${c.id})">🔍</button>
+                                <button class="btn btn-sm btn-secondary" onclick="editClient(${c.id})" title="Modifier">✏️</button>
                                 <button class="btn btn-sm btn-danger" onclick="deleteClient(${c.id})">🗑️</button>
                             </div>
                         </td>
                     </tr>
                 `).join('');
+
             }
 
             const pag = document.getElementById('pagination');
@@ -262,7 +348,12 @@
                         <div class="mb-2"><span class="text-muted text-xs">Profession:</span> <div class="font-medium">${c.profession}</div></div>
                         <div class="mb-2"><span class="text-muted text-xs">Revenus mensuels:</span> <div class="font-medium">${formatCurrency(c.revenus)}</div></div>
                         <div class="mb-2"><span class="text-muted text-xs">Client depuis:</span> <div class="font-medium">${formatDateTime(c.created_at)}</div></div>
+                        ${c.agent_nom ? `<div class="mb-2"><span class="text-muted text-xs">Agent assigné:</span> <div class="font-medium">${c.agent_nom}</div></div>` : ''}
                     </div>
+                </div>
+                <div class="flex gap-3 mt-4">
+                    <button class="btn btn-sm btn-secondary" onclick="editClient(${c.id}); MODAL.close('modal-client-detail');">✏️ Modifier</button>
+                    <button class="btn btn-sm btn-secondary" onclick="openReassign(${c.id}); MODAL.close('modal-client-detail');">🔄 Réassigner</button>
                 </div>
                 <div class="mt-6">
                     <h4 class="text-xs font-bold uppercase text-muted mb-3">Crédits associés</h4>
@@ -333,6 +424,8 @@
                     profession: document.getElementById('c-profession').value.trim(),
                     revenus: parseFloat(document.getElementById('c-revenus').value) || 0,
                 };
+                const pieceFile = document.getElementById('c-piece').files[0];
+                if (pieceFile) payload.piece_identite = pieceFile;
 
                 await API.clients.create(payload);
                 TOAST.success('Succès', 'Client ajouté au portefeuille.');
@@ -345,6 +438,94 @@
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Créer le client';
+            }
+        });
+
+        // ── Edit Client ──
+        function editClient(id) {
+            const c = allClients.find(x => x.id === id);
+            if (!c) return;
+            document.getElementById('edit-client-id').value = id;
+            document.getElementById('ec-nom').value = c.nom || '';
+            document.getElementById('ec-email').value = c.email || '';
+            document.getElementById('ec-telephone').value = c.telephone || '';
+            document.getElementById('ec-profession').value = c.profession || '';
+            document.getElementById('ec-adresse').value = c.adresse || '';
+            document.getElementById('ec-revenus').value = c.revenus || 0;
+            MODAL.open('modal-edit-client');
+        }
+
+        document.getElementById('form-edit-client').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-edit-client');
+            const errEl = document.getElementById('edit-client-error');
+            errEl.classList.add('hidden');
+            btn.disabled = true;
+            btn.textContent = 'Mise à jour...';
+
+            try {
+                const id = parseInt(document.getElementById('edit-client-id').value);
+                const payload = {
+                    nom: document.getElementById('ec-nom').value.trim(),
+                    email: document.getElementById('ec-email').value.trim(),
+                    telephone: document.getElementById('ec-telephone').value.trim(),
+                    adresse: document.getElementById('ec-adresse').value.trim(),
+                    profession: document.getElementById('ec-profession').value.trim(),
+                    revenus: parseFloat(document.getElementById('ec-revenus').value) || 0,
+                };
+                const pieceFile = document.getElementById('ec-piece').files[0];
+                if (pieceFile) payload.piece_identite = pieceFile;
+
+                await API.clients.update(id, payload);
+                TOAST.success('Client modifié', 'Les informations ont été mises à jour.');
+                MODAL.close('modal-edit-client');
+                loadClients();
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Enregistrer';
+            }
+        });
+
+        // ── Reassign Client ──
+        async function openReassign(id) {
+            document.getElementById('reassign-client-id').value = id;
+            // Load agents
+            try {
+                const users = await API.utilisateurs.list();
+                const agents = (Array.isArray(users) ? users : (users?.items || [])).filter(u => u.role === 'agent' || u.role === 'superviseur');
+                const sel = document.getElementById('reassign-agent');
+                sel.innerHTML = '<option value="">-- Sélectionner un agent --</option>' +
+                    agents.map(a => `<option value="${a.id}">${a.username || a.email} (${a.role})</option>`).join('');
+            } catch (err) {
+                console.error('Error loading agents:', err);
+            }
+            MODAL.open('modal-reassign');
+        }
+
+        document.getElementById('form-reassign').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-reassign');
+            const errEl = document.getElementById('reassign-error');
+            errEl.classList.add('hidden');
+            btn.disabled = true;
+            btn.textContent = 'Traitement...';
+
+            try {
+                const clientId = parseInt(document.getElementById('reassign-client-id').value);
+                const agentId = parseInt(document.getElementById('reassign-agent').value);
+                await API.clients.reassign(clientId, { nouvel_agent_id: agentId });
+                TOAST.success('Client réassigné', 'Le client a été transféré à un nouvel agent.');
+                MODAL.close('modal-reassign');
+                loadClients();
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Réassigner';
             }
         });
 

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Caisse & Trésorerie — Terafin</title>
+    <link rel="stylesheet" href="styles/main.css" />
+    <link rel="stylesheet" href="styles/sidebar.css" />
+    <style>
+        .caisse-hero {
+            background: var(--brand-primary);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 28px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .caisse-hero::after {
+            content: '';
+            position: absolute;
+            right: -30px;
+            top: -40px;
+            width: 220px;
+            height: 220px;
+            background: rgba(255, 255, 255, .06);
+            border-radius: 50%;
+        }
+
+        .caisse-solde-label {
+            font-size: .85rem;
+            color: rgba(255, 255, 255, .7);
+            margin-bottom: 6px;
+        }
+
+        .caisse-solde-value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .caisse-solde-sub {
+            font-size: .8rem;
+            color: rgba(255, 255, 255, .55);
+            margin-top: 6px;
+        }
+
+        .transaction-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-size: .75rem;
+            font-weight: 700;
+        }
+
+        .type-entree {
+            background: rgba(16, 185, 129, .12);
+            color: #10b981;
+        }
+
+        .type-sortie {
+            background: rgba(239, 68, 68, .12);
+            color: #ef4444;
+        }
+
+        .type-approvisionnement {
+            background: rgba(99, 102, 241, .12);
+            color: #6366f1;
+        }
+    </style>
+</head>
+
+<body class="app-layout">
+    <div id="sidebar-container"></div>
+    <button class="theme-toggle" id="theme-toggle"></button>
+
+    <main class="main-content" id="main-content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Caisse & Trésorerie</h1>
+                <p class="page-subtitle">Gestion des fonds, approvisionnements et transactions</p>
+            </div>
+            <button class="btn btn-primary" data-modal-open="modal-approvisionner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Approvisionner
+            </button>
+        </div>
+
+        <!-- Solde Hero Card -->
+        <div class="caisse-hero">
+            <div>
+                <div class="caisse-solde-label">Solde actuel de la caisse</div>
+                <div class="caisse-solde-value" id="caisse-solde">—</div>
+                <div class="caisse-solde-sub" id="caisse-updated">Dernière mise à jour : —</div>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:28px;">
+            <div class="kpi-card green">
+                <div class="kpi-icon green">📥</div>
+                <div class="kpi-value" id="kpi-entrees">—</div>
+                <div class="kpi-label">Total Entrées</div>
+            </div>
+            <div class="kpi-card rose">
+                <div class="kpi-icon rose">📤</div>
+                <div class="kpi-value" id="kpi-sorties">—</div>
+                <div class="kpi-label">Total Sorties</div>
+            </div>
+            <div class="kpi-card indigo">
+                <div class="kpi-icon indigo">🔄</div>
+                <div class="kpi-value" id="kpi-operations">—</div>
+                <div class="kpi-label">Nb. Opérations</div>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="table-container">
+            <div class="table-toolbar">
+                <span class="table-title" id="transactions-count">Transactions</span>
+                <div class="flex gap-2">
+                    <select id="filter-type" class="form-control" style="width:auto;padding:7px 12px;font-size:.8rem;">
+                        <option value="">Tous les types</option>
+                        <option value="entree">Entrées</option>
+                        <option value="sortie">Sorties</option>
+                        <option value="approvisionnement">Approvisionnements</option>
+                    </select>
+                    <div class="search-box">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input type="text" id="search-transactions" placeholder="Rechercher..." />
+                    </div>
+                </div>
+            </div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Montant</th>
+                            <th>Solde après</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-tbody">
+                        <tr>
+                            <td colspan="6" class="text-center text-muted" style="padding:40px">
+                                <div class="spinner" style="margin:0 auto 12px"></div>Chargement...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="transactions-pagination"></div>
+        </div>
+    </main>
+
+    <!-- Modal: Approvisionner -->
+    <div class="modal-overlay" id="modal-approvisionner">
+        <div class="modal" style="max-width:480px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Approvisionner la Caisse</h2>
+                <button class="modal-close" data-modal-close="modal-approvisionner">✕</button>
+            </div>
+            <form id="form-approvisionner">
+                <div class="form-group">
+                    <label class="form-label" for="appro-montant">Montant (CFA) *</label>
+                    <input type="number" id="appro-montant" class="form-control" placeholder="Ex: 500000" min="1"
+                        required />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="appro-description">Description</label>
+                    <input type="text" id="appro-description" class="form-control"
+                        placeholder="Ex: Approvisionnement mensuel" />
+                </div>
+                <div id="appro-form-error" class="hidden"
+                    style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:10px 14px;font-size:0.875rem;color:#ef4444;margin-bottom:16px;">
+                </div>
+                <div class="flex gap-3" style="justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary"
+                        data-modal-close="modal-approvisionner">Annuler</button>
+                    <button type="submit" class="btn btn-primary" id="submit-appro">Confirmer
+                        l'approvisionnement</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/shared.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script>
+        if (!AUTH.requireRole(['admin', 'superviseur'])) { }
+        THEME.init();
+        renderSidebar('caisse.html');
+        initShared();
+
+        let allTransactions = [];
+        let currentPage = 1;
+        const PAGE_SIZE = 15;
+
+        async function loadData() {
+            try {
+                const [stats, transactions] = await Promise.all([
+                    API.caisse.stats().catch(() => ({})),
+                    API.caisse.transactions().catch(() => [])
+                ]);
+
+                // Update hero card
+                document.getElementById('caisse-solde').textContent = formatCurrency(stats.solde || 0);
+                document.getElementById('caisse-updated').textContent =
+                    `Dernière mise à jour : ${stats.derniere_mise_a_jour ? formatDateTime(stats.derniere_mise_a_jour) : 'N/A'}`;
+
+                // Update KPIs
+                animateCounter(document.getElementById('kpi-entrees'), stats.total_entrees || 0);
+                animateCounter(document.getElementById('kpi-sorties'), stats.total_sorties || 0);
+                animateCounter(document.getElementById('kpi-operations'), stats.nombre_operations || 0);
+
+                // Transactions
+                allTransactions = Array.isArray(transactions) ? transactions : (transactions?.items || []);
+                renderTable();
+
+            } catch (err) {
+                TOAST.error('Erreur', err.message);
+            }
+        }
+
+        function renderTable() {
+            const typeF = document.getElementById('filter-type').value;
+            const search = document.getElementById('search-transactions').value.toLowerCase();
+
+            let filtered = allTransactions;
+            if (typeF) filtered = filtered.filter(t => (t.type || '').toLowerCase() === typeF);
+            if (search) filtered = filtered.filter(t =>
+                (t.description || '').toLowerCase().includes(search) ||
+                String(t.id || '').includes(search) ||
+                String(t.montant || '').includes(search)
+            );
+
+            document.getElementById('transactions-count').textContent = `Transactions (${filtered.length})`;
+
+            const total = filtered.length;
+            const pages = Math.ceil(total / PAGE_SIZE);
+            if (currentPage > pages) currentPage = 1;
+            const slice = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+            const tbody = document.getElementById('transactions-tbody');
+            if (slice.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:32px">Aucune transaction trouvée</td></tr>';
+            } else {
+                tbody.innerHTML = slice.map(t => {
+                    const typeClass = t.type === 'entree' ? 'type-entree'
+                        : t.type === 'sortie' ? 'type-sortie'
+                            : 'type-approvisionnement';
+                    const typeLabel = t.type === 'entree' ? '📥 Entrée'
+                        : t.type === 'sortie' ? '📤 Sortie'
+                            : '🔄 Appro.';
+                    const montantColor = t.type === 'sortie' ? 'color:#ef4444' : 'color:#10b981';
+                    const montantPrefix = t.type === 'sortie' ? '−' : '+';
+
+                    return `
+                        <tr>
+                            <td class="text-muted">#${t.id}</td>
+                            <td class="text-sm">${formatDateTime(t.created_at || t.date)}</td>
+                            <td><span class="transaction-type ${typeClass}">${typeLabel}</span></td>
+                            <td>${t.description || '—'}</td>
+                            <td><strong style="${montantColor}">${montantPrefix}${formatCurrency(Math.abs(t.montant))}</strong></td>
+                            <td class="text-muted">${t.solde_apres != null ? formatCurrency(t.solde_apres) : '—'}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            const pag = document.getElementById('transactions-pagination');
+            if (pages <= 1) { pag.innerHTML = ''; return; }
+            let html = `<button class="pagination-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
+            for (let i = 1; i <= Math.min(pages, 10); i++) html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+            if (pages > 10) html += `<span class="text-muted text-sm" style="padding:0 8px">... ${pages}</span>`;
+            html += `<button class="pagination-btn" onclick="changePage(${currentPage + 1})" ${currentPage === pages ? 'disabled' : ''}>›</button>`;
+            pag.innerHTML = html;
+        }
+
+        function changePage(p) { currentPage = p; renderTable(); }
+
+        document.getElementById('filter-type').addEventListener('change', () => { currentPage = 1; renderTable(); });
+        document.getElementById('search-transactions').addEventListener('input', () => { currentPage = 1; renderTable(); });
+
+        // Approvisionnement form
+        document.getElementById('form-approvisionner').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errEl = document.getElementById('appro-form-error');
+            const btn = document.getElementById('submit-appro');
+            errEl.classList.add('hidden');
+            btn.disabled = true;
+            btn.textContent = 'Traitement...';
+
+            try {
+                const payload = {
+                    montant: parseFloat(document.getElementById('appro-montant').value),
+                    description: document.getElementById('appro-description').value.trim() || 'Approvisionnement',
+                };
+
+                await API.caisse.approvisionner(payload);
+                TOAST.success('Caisse approvisionnée', `${formatCurrency(payload.montant)} ajouté à la caisse.`);
+                MODAL.close('modal-approvisionner');
+                document.getElementById('form-approvisionner').reset();
+                loadData();
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Confirmer l'approvisionnement";
+            }
+        });
+
+        loadData();
+    </script>
+</body>
+
+</html>

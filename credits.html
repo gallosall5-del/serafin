@@ -185,6 +185,34 @@
         </div>
     </div>
 
+    <!-- Modal: Credit Detail -->
+    <div class="modal-overlay" id="modal-credit-detail">
+        <div class="modal" style="max-width:720px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="detail-credit-title">Détail du Crédit</h2>
+                <button class="modal-close" data-modal-close="modal-credit-detail">✕</button>
+            </div>
+            <div id="credit-detail-content" class="p-6">
+                <div class="text-center text-muted" style="padding:24px">
+                    <div class="spinner" style="margin:0 auto 12px"></div>Chargement...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Échéancier -->
+    <div class="modal-overlay" id="modal-echeancier">
+        <div class="modal" style="max-width:800px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="echeancier-title">Échéancier</h2>
+                <button class="modal-close" data-modal-close="modal-echeancier">✕</button>
+            </div>
+            <div id="echeancier-content" class="p-6" style="max-height:500px;overflow-y:auto;">
+                <div class="text-center text-muted" style="padding:24px">Chargement...</div>
+            </div>
+        </div>
+    </div>
+
     <div id="toast-container"></div>
 
     <script src="js/auth.js"></script>
@@ -393,6 +421,132 @@
                 TOAST.error('Erreur export', err.message);
             }
         });
+
+        // ── View Credit Details ──
+        async function viewDetails(id) {
+            const content = document.getElementById('credit-detail-content');
+            content.innerHTML = '<div class="text-center text-muted" style="padding:24px"><div class="spinner" style="margin:0 auto 12px"></div>Chargement...</div>';
+            document.getElementById('detail-credit-title').textContent = `Crédit #${id}`;
+            MODAL.open('modal-credit-detail');
+
+            try {
+                const [credit, penalites] = await Promise.all([
+                    API.credits.get(id),
+                    API.credits.penalites(id).catch(() => null)
+                ]);
+
+                const client = allClients.find(c => c.id === credit.client_id);
+                const clientName = client ? client.nom : `Client #${credit.client_id}`;
+
+                let penaliteHtml = '';
+                if (penalites && (penalites.jours_retard > 0 || penalites.montant_penalites > 0)) {
+                    penaliteHtml = `
+                        <div class="card p-4 mt-4" style="border-left:3px solid #ef4444;">
+                            <h4 class="text-xs font-bold uppercase text-muted mb-3">⚠️ Analyse des Pénalités</h4>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <div class="text-muted text-xs">Jours de retard</div>
+                                    <div class="font-bold text-rose">${penalites.jours_retard || 0} jours</div>
+                                </div>
+                                <div>
+                                    <div class="text-muted text-xs">Montant pénalités</div>
+                                    <div class="font-bold text-rose">${formatCurrency(penalites.montant_penalites || 0)}</div>
+                                </div>
+                                <div>
+                                    <div class="text-muted text-xs">Taux journalier</div>
+                                    <div class="font-semibold">${penalites.taux_penalite_journalier || 0}%</div>
+                                </div>
+                                <div>
+                                    <div class="text-muted text-xs">Total à payer (capital + pénalités)</div>
+                                    <div class="font-bold" style="color:var(--brand-primary)">${formatCurrency(penalites.total_a_payer || 0)}</div>
+                                </div>
+                            </div>
+                        </div>`;
+                }
+
+                content.innerHTML = `
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="card p-4">
+                            <h4 class="text-xs font-bold uppercase text-muted mb-3">📋 Informations du Crédit</h4>
+                            <div class="mb-2"><span class="text-muted text-xs">Client :</span> <div class="font-medium">${clientName}</div></div>
+                            <div class="mb-2"><span class="text-muted text-xs">Montant :</span> <div class="font-medium">${formatCurrency(credit.montant)}</div></div>
+                            <div class="mb-2"><span class="text-muted text-xs">Taux annuel :</span> <div class="font-medium">${credit.taux}% (${credit.type_interet})</div></div>
+                            <div class="mb-2"><span class="text-muted text-xs">Durée :</span> <div class="font-medium">${credit.duree} mois</div></div>
+                        </div>
+                        <div class="card p-4">
+                            <h4 class="text-xs font-bold uppercase text-muted mb-3">💰 État Financier</h4>
+                            <div class="mb-2"><span class="text-muted text-xs">Mensualité :</span> <div class="font-bold" style="color:var(--brand-primary)">${formatCurrency(credit.mensualite)}</div></div>
+                            <div class="mb-2"><span class="text-muted text-xs">Statut :</span> <div>${creditStatusBadge(credit.statut)}</div></div>
+                            <div class="mb-2"><span class="text-muted text-xs">Date de création :</span> <div class="font-medium">${formatDateTime(credit.created_at)}</div></div>
+                            ${credit.date_validation ? `<div class="mb-2"><span class="text-muted text-xs">Date validation :</span> <div class="font-medium">${formatDateTime(credit.date_validation)}</div></div>` : ''}
+                        </div>
+                    </div>
+                    ${penaliteHtml}
+                    <div class="flex gap-3 mt-6" style="justify-content:flex-end;">
+                        <button class="btn btn-secondary" onclick="viewEcheancier(${id})">
+                            📊 Voir l'Échéancier
+                        </button>
+                    </div>
+                `;
+            } catch (err) {
+                content.innerHTML = `<p class="text-center" style="padding:24px;color:#ef4444">Erreur : ${err.message}</p>`;
+            }
+        }
+
+        // ── View Échéancier ──
+        async function viewEcheancier(creditId) {
+            const content = document.getElementById('echeancier-content');
+            content.innerHTML = '<div class="text-center text-muted" style="padding:24px"><div class="spinner" style="margin:0 auto 12px"></div>Chargement de l\'échéancier...</div>';
+            document.getElementById('echeancier-title').textContent = `Échéancier — Crédit #${creditId}`;
+            MODAL.close('modal-credit-detail');
+            MODAL.open('modal-echeancier');
+
+            try {
+                const echeancier = await API.credits.echeancier(creditId);
+                const items = Array.isArray(echeancier) ? echeancier : (echeancier?.echeances || echeancier?.items || []);
+
+                if (items.length === 0) {
+                    content.innerHTML = '<p class="text-muted text-center" style="padding:24px">Aucune échéance trouvée.</p>';
+                    return;
+                }
+
+                content.innerHTML = `
+                    <table style="width:100%;font-size:.85rem;">
+                        <thead>
+                            <tr>
+                                <th>N°</th>
+                                <th>Date</th>
+                                <th>Capital</th>
+                                <th>Intérêt</th>
+                                <th>Mensualité</th>
+                                <th>Restant</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${items.map((e, i) => `
+                                <tr style="${e.statut === 'payé' || e.paye ? 'opacity:0.5' : ''}">
+                                    <td class="text-muted">${e.numero || (i + 1)}</td>
+                                    <td>${formatDate(e.date_echeance || e.date)}</td>
+                                    <td>${formatCurrency(e.capital || e.part_capital || 0)}</td>
+                                    <td>${formatCurrency(e.interet || e.part_interet || 0)}</td>
+                                    <td><strong>${formatCurrency(e.mensualite || e.montant || 0)}</strong></td>
+                                    <td>${formatCurrency(e.capital_restant || e.restant || 0)}</td>
+                                    <td>${e.statut === 'payé' || e.paye
+                        ? '<span class="badge badge-done">Payé</span>'
+                        : e.statut === 'en_retard' || e.en_retard
+                            ? '<span class="badge badge-late">En retard</span>'
+                            : '<span class="badge badge-pending">À venir</span>'
+                    }</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (err) {
+                content.innerHTML = `<p class="text-center" style="padding:24px;color:#ef4444">Erreur : ${err.message}</p>`;
+            }
+        }
 
         loadData();
     </script>
