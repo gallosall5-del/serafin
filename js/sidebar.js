@@ -63,11 +63,7 @@ function renderSidebar(activePage = '') {
     <aside class="sidebar" id="sidebar">
       <a href="dashboard.html" class="sidebar-brand">
         <div class="sidebar-brand-logo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-            <path d="M2 17l10 5 10-5"/>
-            <path d="M2 12l10 5 10-5"/>
-          </svg>
+          <img src="assets/logo3_transparent_final.png" alt="Terafin Logo" />
         </div>
         <div class="sidebar-brand-text">
           <span class="sidebar-brand-name">Terafin</span>

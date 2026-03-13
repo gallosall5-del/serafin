@@ -31,19 +31,16 @@
 .sidebar-brand-logo {
     width: 38px;
     height: 38px;
-    background: var(--brand-primary);
-    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, .2);
 }
 
-.sidebar-brand-logo svg {
-    width: 20px;
-    height: 20px;
-    color: #fff;
+.sidebar-brand-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 .sidebar-brand-text {

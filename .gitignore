@@ -1,0 +1,13 @@
+.env
+node_modules/
+.DS_Store
+dist/
+build/
+*.pyc
+__pycache__/
+remove_bg.py
+.gemini/
+.agents/
+.agent/
+_agents/
+_agent/
